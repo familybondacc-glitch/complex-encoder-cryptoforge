@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoForge - Complex Encoder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', system-ui, sans-serif; }
+        .tab-active { border-bottom: 3px solid #22d3ee; color: #22d3ee; }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+    <div class="max-w-6xl mx-auto p-6">
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
+                <i class="fas fa-lock"></i> CryptoForge
+            </h1>
+            <div class="text-sm text-gray-400">Advanced Multi-Encoder / Decoder</div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                <div class="flex justify-between mb-4">
+                    <h2 class="text-xl font-semibold">Input Text</h2>
+                    <button onclick="clearAll()" class="text-red-400 hover:text-red-300 text-sm">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                </div>
+                <textarea id="input" rows="8" class="w-full bg-gray-950 border border-gray-700 rounded-xl p-4 text-white resize-y focus:outline-none focus:border-cyan-500" placeholder="Enter text to encode/decode..."></textarea>
+                <div class="flex gap-2 mt-4">
+                    <button onclick="encodeAll()" class="flex-1 bg-cyan-600 hover:bg-cyan-500 py-3 rounded-xl font-medium transition">
+                        <i class="fas fa-arrow-down"></i> Encode All
+                    </button>
+                    <button onclick="decodeAll()" class="flex-1 bg-purple-600 hover:bg-purple-500 py-3 rounded-xl font-medium transition">
+                        <i class="fas fa-arrow-up"></i> Decode All
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+                <h2 class="text-xl font-semibold mb-4">Results</h2>
+                <div id="results" class="space-y-4 max-h-[500px] overflow-auto pr-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const methods = [
+            { name: "Base64", encode: (t) => btoa(unescape(encodeURIComponent(t))), decode: (t) => decodeURIComponent(escape(atob(t))) },
+            { name: "URL Encode", encode: encodeURIComponent, decode: decodeURIComponent },
+            { name: "Hex", encode: t => Array.from(t).map(c => c.charCodeAt(0).toString(16).padStart(2,'0')).join(''), decode: h => h.match(/.{1,2}/g)?.map(b => String.fromCharCode(parseInt(b,16))).join('') || '' },
+            { name: "Binary", encode: t => Array.from(t).map(c => c.charCodeAt(0).toString(2).padStart(8,'0')).join(' '), decode: b => b.split(/\s+/).map(n => String.fromCharCode(parseInt(n,2))).join('') },
+            { name: "ROT13", encode: t => t.replace(/[a-zA-Z]/g, c => String.fromCharCode((c <= 'Z' ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26)), decode: t => t.replace(/[a-zA-Z]/g, c => String.fromCharCode((c <= 'Z' ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26)) },
+            { name: "Caesar (+3)", encode: t => t.replace(/[a-zA-Z]/g, c => String.fromCharCode((c <= 'Z' ? 90 : 122) >= (c = c.charCodeAt(0) + 3) ? c : c - 26)), decode: t => t.replace(/[a-zA-Z]/g, c => String.fromCharCode((c <= 'Z' ? 90 : 122) >= (c = c.charCodeAt(0) - 3) ? c : c + 26)) },
+            { name: "Reverse", encode: t => t.split('').reverse().join(''), decode: t => t.split('').reverse().join('') },
+            { name: "ASCII", encode: t => Array.from(t).map(c => c.charCodeAt(0)).join(' '), decode: a => a.split(/\s+/).map(n => String.fromCharCode(parseInt(n))).join('') }
+        ];
+
+        function renderResults(input) {
+            const container = document.getElementById('results');
+            container.innerHTML = '';
+            methods.forEach(method => {
+                try {
+                    const encoded = method.encode(input);
+                    const card = document.createElement('div');
+                    card.className = "bg-gray-800 rounded-xl p-4 border border-gray-700 hover:border-cyan-500 transition group";
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div class="font-medium text-cyan-400">${method.name}</div>
+                            <button onclick="copyText(this)" class="text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="mt-2 font-mono text-sm break-all text-gray-300">${encoded}</div>
+                    `;
+                    container.appendChild(card);
+                } catch(e) {}
+            });
+        }
+
+        function encodeAll() {
+            const input = document.getElementById('input').value;
+            if (!input) return alert('Please enter some text');
+            renderResults(input);
+        }
+
+        function decodeAll() {
+            alert('Most tools are reversible. Full decode UI coming soon!');
+            encodeAll();
+        }
+
+        function copyText(btn) {
+            const text = btn.parentElement.parentElement.querySelector('.font-mono').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const orig = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check text-green-400"></i>';
+                setTimeout(() => btn.innerHTML = orig, 1500);
+            });
+        }
+
+        function clearAll() {
+            document.getElementById('input').value = '';
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // Live update
+        document.getElementById('input').addEventListener('input', () => {
+            clearTimeout(window.timeout);
+            window.timeout = setTimeout(() => {
+                const val = document.getElementById('input').value;
+                if (val.length > 3) renderResults(val);
+            }, 400);
+        });
+    </script>
+</body>
+</html>
